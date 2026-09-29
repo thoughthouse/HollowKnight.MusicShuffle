@@ -26,6 +26,7 @@ namespace MusicShuffle
         private string lastRequestedMusicCueName = "Title";
         private MusicCue currentMusicCue = null;
         private bool hasGramaphone = false;
+        private bool isDreaming = false;
         private AudioSource shadeMusicSource = null;
         
         private Dictionary<string, AudioMixerSnapshot> mySnapshots = [];
@@ -74,7 +75,21 @@ namespace MusicShuffle
         private void FetchMusicCues()
         {
             myMusicCues = Resources.FindObjectsOfTypeAll<MusicCue>();
-            myMusicCues = Array.FindAll(myMusicCues, cue => cue.name != "None" && cue.name != "RestingGrounds");
+            myMusicCues = Array.FindAll(myMusicCues, cue => cue.name != "None" && cue.name != "RestingGroundsWithDreamNail");
+
+            for (int i = 0; i < myMusicCues.Length; i++)
+            {
+                if (myMusicCues[i].name == "Dirtmouth")
+                {
+                    //make a new dirtmouth cue that does not have the accordion alternative; we're keeping them separate
+                    MusicCue.MusicChannelInfo mainChannel = myMusicCues[i].GetChannelInfo(MusicChannels.Main);
+                    AudioClip dirtmouthClip = mainChannel.Clip;
+                    MusicCue newDirtmouth = Util.CreateMusicCueFromClip(dirtmouthClip);
+                    newDirtmouth.name = "Dirtmouth";
+                    myMusicCues[i] = newDirtmouth;
+                    break;
+                }
+            }
 
             AudioClip[] audioClips = Resources.FindObjectsOfTypeAll<AudioClip>();
 
@@ -94,14 +109,25 @@ namespace MusicShuffle
             }
 
             AudioSource[] audioSources = Resources.FindObjectsOfTypeAll<AudioSource>();
+            int mySrcCount = 0;
             for (int i = audioSources.Length - 1; i >= 0; i--)
             {
+                if (audioSources[i].name == "Play Music Strings and Choir(Clone)")
+                {
+                    MusicCue dreamerCue = Util.CreateMusicCueFromClip(audioSources[i].clip);
+                    myMusicCues = [.. myMusicCues.Append(dreamerCue)];
+                    mySrcCount++;
+                }
                 if (audioSources[i].name == "Shade")
                 {
                     shadeMusicSource = audioSources[i];
 
                     MusicCue shadeCue = Util.CreateMusicCueFromClip(audioSources[i].clip);
                     myMusicCues = [.. myMusicCues.Append(shadeCue)];
+                    mySrcCount++;
+                }
+                if (mySrcCount == 2)
+                {
                     break;
                 }
             }
@@ -172,6 +198,7 @@ namespace MusicShuffle
         private void AudioManager_ApplyMusicCue(On.AudioManager.orig_ApplyMusicCue orig, AudioManager self, MusicCue musicCue, float delayTime, float transitionTime, bool applySnapshot)
         {
             hasGramaphone = false;
+
             if (mode == Mode.Off)
             {
                 orig(self, musicCue, delayTime, transitionTime, applySnapshot);
@@ -183,11 +210,13 @@ namespace MusicShuffle
                 return;
             }
 
+            isDreaming = musicCue.name == "DreamerScene";
+
             lastRequestedMusicCueName = musicCue.name;
             MusicCue cueToPlay = null;
             bool? isBossTheme = null;
 
-            if (musicCue.name == "None" || musicCue.name == "RestingGrounds")
+            if (musicCue.name == "None" || (musicCue.name == "RestingGrounds" && !PlayerData.instance.hasDreamNail))
             {
                 //leave silence as silence
                 cueToPlay = musicCue;
@@ -203,7 +232,12 @@ namespace MusicShuffle
             }
             else if (mode == Mode.Fixed)
             {
-                if (musicMap.TryGetValue(musicCue.name, out string newCueName))
+                string cueName = musicCue.name;
+                if (cueName == "Dirtmouth" && PlayerData.instance.nymmInTown)
+                {
+                    cueName = "DirtmouthAccordion";
+                }
+                if (musicMap.TryGetValue(cueName, out string newCueName))
                 {
                     cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
                 }
@@ -219,7 +253,7 @@ namespace MusicShuffle
             currentMusicCue = cueToPlay;
         }
 
-        //used in colosseum
+        //used in colosseum and dreamer scenes
         private void AudioPlaySimple_OnEnter(On.HutongGames.PlayMaker.Actions.AudioPlaySimple.orig_OnEnter orig, HutongGames.PlayMaker.Actions.AudioPlaySimple self)
         {
             hasGramaphone = false;
@@ -248,7 +282,7 @@ namespace MusicShuffle
                 }
             }
 
-            if (clipName != null && clipName.StartsWith("S57 COLOSSEUM INTENSITY"))
+            if (clipName != null && (clipName.StartsWith("S57 COLOSSEUM INTENSITY") || clipName == "S41-33 Strings and Choir"))
             {
                 AudioClip newClip = null;
                 MusicCue cueToPlay = null;
@@ -259,15 +293,17 @@ namespace MusicShuffle
                 }
                 else //Fixed mode
                 {
-                    string newCueName = musicMap[clipName];
-                    cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    if (musicMap.TryGetValue(clipName, out string newCueName))
+                    {
+                        cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    }
                 }
 
                 if (cueToPlay != null)
                 {
                     MusicCue.MusicChannelInfo actionChannel = cueToPlay.GetChannelInfo(MusicChannels.Action);
 
-                    if (actionChannel != null)
+                    if (actionChannel != null && clipName != "S41-33 Strings and Choir")
                     {
                         newClip = actionChannel.Clip;
                     }
@@ -344,14 +380,15 @@ namespace MusicShuffle
                 }
                 else //Fixed mode
                 {
-                    string newCueName = musicMap["Safety"];
-                    cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    if (musicMap.TryGetValue("Safety", out string newCueName))
+                    {
+                        cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    }
                 }
 
                 if (cueToPlay != null)
                 {
                     hasGramaphone = true;
-                    Log("play " + cueToPlay.name);
 
                     MusicCue.MusicChannelInfo mainChannel = cueToPlay.GetChannelInfo(MusicChannels.Main);
                     if (mainChannel != null)
@@ -387,8 +424,10 @@ namespace MusicShuffle
                 }
                 else //Fixed mode
                 {
-                    string newCueName = musicMap["Hollow Shade Music"];
-                    cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    if (musicMap.TryGetValue("Hollow Shade Music", out string newCueName))
+                    {
+                        cueToPlay = Array.Find(myMusicCues, cue => cue.name == newCueName);
+                    }
                 }
 
                 if (cueToPlay != null)
@@ -489,7 +528,7 @@ namespace MusicShuffle
                     }
                     break;
                 case "Sub Area":
-                    if (!hasSub)
+                    if (!hasSub && !isDreaming) //special case: always allow sub area in dreamer scene
                     {
                         return mySnapshots["Main Only"];
                     }
@@ -507,7 +546,7 @@ namespace MusicShuffle
         private void ChangeShadeMusic(MusicCue cue)
         {
             MusicCue.MusicChannelInfo mainChannel = cue.GetChannelInfo(MusicChannels.Main);
-            if (mainChannel != null)
+            if (mainChannel != null && shadeMusicSource != null)
             {
                 shadeMusicSource.clip = mainChannel.Clip;
                 shadeMusicSource.enabled = false;
@@ -639,14 +678,13 @@ namespace MusicShuffle
                             }
                         },
                         loadSetting: () => (int)mode
-                    )
+                    ),
+                    bossOption,
+                    shadeOption,
+                    coloOption,
+                    reButton
                 }
             );
-
-            menuRef.AddElement(bossOption);
-            menuRef.AddElement(shadeOption);
-            menuRef.AddElement(coloOption);
-            menuRef.AddElement(reButton);
 
             if (mode != Mode.Fixed)
             {
@@ -655,6 +693,8 @@ namespace MusicShuffle
             if (mode == Mode.Off)
             {
                 bossOption.isVisible = false;
+                shadeOption.isVisible = false;
+                coloOption.isVisible = false;
             }
 
             return menuRef.GetMenuScreen(modListMenu);
