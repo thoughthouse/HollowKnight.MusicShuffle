@@ -19,6 +19,7 @@ namespace MusicShuffle
             ("Dream_04_White_Defender", "White Defender"),
             ("Dream_Final_Boss", "Boss Control"), //Radiance, Soul Master 2 and Furious Gods
             ("Dream_Guardian_Monomon", "_SceneManager"),
+            ("Dream_Guardian_Monomon", "Play Music Strings and Choir"),
             ("Dream_Mighty_Zote", "Grey Prince"),
             ("Dream_Room_Believer_Shrine", "_SceneManager"),
             ("Fungus1_02","_SceneManager"),
