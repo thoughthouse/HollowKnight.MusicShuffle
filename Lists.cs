@@ -41,6 +41,8 @@ namespace MusicShuffle
             ("RestingGrounds_04","_SceneManager"),
             ("Room_Colosseum_Bronze", "Colosseum Manager"),
             ("Room_Final_Boss_Atrium","_SceneManager"),
+            ("Room_Final_Boss_Core", "_SceneManager"), //THK pre-battle
+            ("Room_Final_Boss_Core", "Boss Control"),
             ("Room_Queen","Music Region"),
             ("Ruins1_24","_SceneManager"), //soul sanctum
             ("Ruins1_24_boss","Mage Lord"), //soul master
@@ -68,9 +70,11 @@ namespace MusicShuffle
             "GG Mantis",
             "GG Normal",
             "GG Sad",
-            "Grey Prince",
+            "GreyPrince",
             "Grimm",
             "HiveKnight",
+            "HKBattle",
+            "HKDecline",
             "HollowKnightPrime",
             "MageLord2",
             "MimicSpider",

@@ -265,20 +265,13 @@ namespace MusicShuffle
             string clipName = null;
             AudioSource src = null;
 
-            if (self.oneShotClip != null && self.oneShotClip.Value != null)
+            GameObject owner = self.Fsm.GetOwnerDefaultTarget(self.gameObject);
+            if (owner != null)
             {
-                clipName = self.oneShotClip.Value.name;
-            }
-            else
-            {
-                GameObject owner = self.Fsm.GetOwnerDefaultTarget(self.gameObject);
-                if (owner != null)
+                src = owner.GetComponent<AudioSource>();
+                if (src != null && src.clip != null)
                 {
-                    src = owner.GetComponent<AudioSource>();
-                    if (src != null && src.clip != null)
-                    {
-                        clipName = src.clip.name;
-                    }
+                    clipName = src.clip.name;
                 }
             }
 
@@ -316,16 +309,9 @@ namespace MusicShuffle
                         }
                     }
 
-                    if (newClip != null)
+                    if (newClip != null && src != null)
                     {
-                        if (self.oneShotClip != null && self.oneShotClip.Value != null)
-                        {
-                            self.oneShotClip.Value = newClip;
-                        }
-                        else if (src != null)
-                        {
-                            src.clip = newClip;
-                        }
+                        src.clip = newClip;
                     }
 
                     currentMusicCue = cueToPlay;
@@ -347,26 +333,18 @@ namespace MusicShuffle
             string clipName = null;
             AudioSource src = null;
 
-            if (self.oneShotClip != null && self.oneShotClip.Value != null)
+            GameObject owner = self.Fsm.GetOwnerDefaultTarget(self.gameObject);
+            if (owner != null)
             {
-                clipName = self.oneShotClip.Value.name;
-            }
-            else
-            {
-                GameObject owner = self.Fsm.GetOwnerDefaultTarget(self.gameObject);
-                if (owner != null)
+                src = owner.GetComponent<AudioSource>();
+                if (src != null && src.clip != null)
                 {
-                    src = owner.GetComponent<AudioSource>();
-                    if (src != null && src.clip != null)
-                    {
-                        clipName = src.clip.name;
-                    }
+                    clipName = src.clip.name;
                 }
             }
 
             if (clipName != null && clipName == "Safety")
             {
-                AudioClip newClip = null;
                 MusicCue cueToPlay = null;
 
                 if (hasGramaphone)
@@ -391,17 +369,9 @@ namespace MusicShuffle
                     hasGramaphone = true;
 
                     MusicCue.MusicChannelInfo mainChannel = cueToPlay.GetChannelInfo(MusicChannels.Main);
-                    if (mainChannel != null)
+                    if (mainChannel != null && src != null)
                     {
-                        newClip = mainChannel.Clip;
-                        if (self.oneShotClip != null && self.oneShotClip.Value != null)
-                        {
-                            self.oneShotClip.Value = newClip;
-                        }
-                        else if (src != null)
-                        {
-                            src.clip = newClip;
-                        }
+                        src.clip = mainChannel.Clip;
                     }
 
                     currentMusicCue = cueToPlay;
